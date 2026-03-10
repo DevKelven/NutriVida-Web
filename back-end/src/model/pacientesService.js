@@ -1,0 +1,47 @@
+const { banco } = require("./database");
+
+async function listarPacientes() {
+    const sql = `
+       SELECT 
+    p.id AS paciente_id,
+    u.nome_usuario AS paciente_nome,
+    u.email AS paciente_email,
+    p.telefone AS paciente_telefone,
+    p.idade AS paciente_idade,
+    p.peso AS paciente_peso,
+    p.altura AS paciente_altura,
+    n.id AS nutricionista_id,
+    n.nome AS nutricionista_nome,         -- <-- aqui, não nu.nome_usuario
+    n.especialidade AS nutricionista_especialidade
+FROM pacientes p
+JOIN usuarios u ON p.usuario_id = u.id
+JOIN nutricionistas n ON p.nutricionista_id = n.id
+    `;
+    const [rows] = await banco.query(sql);
+    return rows;
+}
+
+async function listarPacientesPorNutricionista(nutricionistaId) {
+  const sql = `
+    SELECT 
+        p.id AS paciente_id,
+        u.nome_usuario AS paciente_nome,
+        u.email AS paciente_email,
+        p.telefone AS paciente_telefone,
+        p.idade AS paciente_idade,
+        p.peso AS paciente_peso,
+        p.altura AS paciente_altura,
+        n.id AS nutricionista_id,
+        n.nome AS nutricionista_nome,          -- pega o nome da tabela nutricionistas
+        n.especialidade AS nutricionista_especialidade
+    FROM pacientes p
+    JOIN usuarios u ON p.usuario_id = u.id
+    JOIN nutricionistas n ON p.nutricionista_id = n.id
+    WHERE n.id = ?;
+  `;
+
+  const [rows] = await banco.query(sql, [nutricionistaId]);
+  return rows;
+}
+
+module.exports = { listarPacientes, listarPacientesPorNutricionista };

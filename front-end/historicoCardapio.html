@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Histórico de Cardápios - NutriVida</title>
+  <link rel="icon" href="img/logos/logo.png" type="image/x-icon">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="tela.js" defer></script>
+  <style>
+    :root {
+      --primary: #10b981;
+      --primary-dark: #059669;
+      --secondary: #34d399;
+      --accent: #fbbf24;
+      --blue: #3b82f6;
+      --orange: #fb923c;
+      --dark: #0f172a;
+      --dark-light: #1e293b;
+      --card-bg: rgba(15, 23, 42, 0.92);
+      --text: #e2e8f0;
+      --text-dim: #94a3b8;
+      --border: rgba(16, 185, 129, 0.18);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(135deg, #0a1f1a 0%, #0f172a 100%);
+      min-height: 100vh;
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    .bg-blobs { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+    .blob { position: absolute; border-radius: 50%; filter: blur(90px); opacity: .1; }
+    .blob-1 { width: 520px; height: 520px; background: var(--primary); top: -140px; left: -120px; animation: drift 14s ease-in-out infinite alternate; }
+    .blob-2 { width: 420px; height: 420px; background: var(--blue); bottom: -100px; right: -100px; animation: drift 18s ease-in-out infinite alternate-reverse; }
+    .blob-3 { width: 280px; height: 280px; background: var(--accent); top: 45%; left: 55%; animation: drift 11s ease-in-out infinite alternate; }
+    @keyframes drift { from { transform: translate(0,0) scale(1); } to { transform: translate(28px,18px) scale(1.04); } }
+
+    
+    .page { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 32px 20px 60px; }
+
+    .section-title {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px; font-weight: 700; color: #4b5563;
+      letter-spacing: .9px; text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .section-title::before, .section-title::after {
+      content: ''; flex: 1; height: 1px; background: rgba(255,255,255,.07);
+    }
+
+    /* ─── SELETOR DE CARDÁPIOS ─── */
+    .plan-selector-section {
+      margin-bottom: 36px;
+      animation: fadeUp .4s ease both;
+    }
+
+    .plan-selector-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px; flex-wrap: wrap; gap: 10px;
+    }
+    .plan-selector-header h2 {
+      font-size: 16px; font-weight: 800; color: #fff;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .plan-count-badge {
+      font-size: 11px; font-weight: 700;
+      background: rgba(16,185,129,.15);
+      border: 1px solid rgba(16,185,129,.3);
+      color: var(--primary);
+      border-radius: 20px; padding: 3px 10px;
+    }
+
+    .plan-cards-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(195px, 1fr));
+      gap: 12px;
+    }
+
+    .plan-card {
+      position: relative;
+      background: var(--card-bg);
+      border: 1.5px solid rgba(255,255,255,.08);
+      border-radius: 18px;
+      padding: 18px 18px 16px;
+      cursor: pointer;
+      transition: border-color .22s, transform .2s, box-shadow .2s;
+      overflow: hidden;
+    }
+    .plan-card::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, transparent 60%, rgba(16,185,129,.06));
+      pointer-events: none;
+    }
+    .plan-card:hover {
+      border-color: rgba(16,185,129,.4);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px rgba(0,0,0,.3);
+    }
+    .plan-card.active {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(16,185,129,.18), 0 10px 30px rgba(0,0,0,.3);
+      background: rgba(16,185,129,.07);
+    }
+    .plan-card.active .plan-check {
+      display: flex !important;
+    }
+    .plan-check {
+      display: none;
+      position: absolute; top: 12px; right: 14px;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--primary);
+      align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .plan-check svg { display: block; }
+
+    .plan-emoji {
+      width: 40px; height: 40px; margin-bottom: 12px; display: flex;
+      align-items: center; justify-content: center;
+      background: rgba(16,185,129,.12);
+      border: 1px solid rgba(16,185,129,.2);
+      border-radius: 12px;
+      color: var(--primary);
+      flex-shrink: 0;
+    }
+    .plan-emoji svg { width: 22px; height: 22px; }
+    .plan-card-title {
+      font-size: 14px; font-weight: 800; color: #fff;
+      margin-bottom: 4px; padding-right: 28px;
+    }
+    .plan-card-sub {
+      font-size: 11px; color: var(--text-dim); margin-bottom: 10px;
+      line-height: 1.4;
+    }
+
+    .plan-kcal-row {
+      display: flex; align-items: center; gap: 6px;
+      margin-top: 10px; padding-top: 10px;
+      border-top: 1px solid rgba(255,255,255,.06);
+      font-size: 11px; color: var(--text-dim);
+    }
+    .plan-kcal-row strong { color: var(--primary); font-size: 13px; }
+
+    /* transição suave ao trocar de cardápio */
+    .plan-content {
+      transition: opacity .3s ease, transform .3s ease;
+    }
+    .plan-content.switching {
+      opacity: 0; transform: translateY(10px);
+    }
+
+    /* ─── restante igual ao original ─── */
+    .patient-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px 28px;
+      margin-bottom: 32px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 20px;
+      align-items: center;
+      animation: fadeUp .5s ease both;
+    }
+    .patient-avatar {
+      width: 68px; height: 68px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; font-weight: 800; color: #0D332D;
+      flex-shrink: 0;
+      box-shadow: 0 4px 20px rgba(16,185,129,.35);
+    }
+    .patient-info h2 { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+    .patient-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tag {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 12px; color: var(--text-dim); font-weight: 500;
+    }
+    .tag.green { background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.25); color: var(--secondary); }
+    .tag.yellow { background: rgba(251,191,36,.1); border-color: rgba(251,191,36,.25); color: var(--accent); }
+    .tag.red { background: rgba(239,68,68,.1); border-color: rgba(239,68,68,.25); color: #f87171; }
+
+    .cal-summary {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+      margin-bottom: 32px;
+      animation: fadeUp .5s .1s ease both;
+    }
+    .cal-day {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 8px;
+      text-align: center;
+      transition: border-color .2s, transform .2s;
+      cursor: default;
+    }
+    .cal-day:hover { border-color: rgba(16,185,129,.45); transform: translateY(-2px); }
+    .cal-day .day-name { font-size: 10px; color: var(--text-dim); font-weight: 600; letter-spacing: .5px; text-transform: uppercase; margin-bottom: 8px; }
+    .cal-day .cal-bar-wrap { height: 48px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 6px; }
+    .cal-bar { width: 18px; border-radius: 4px 4px 0 0; background: linear-gradient(to top, var(--primary-dark), var(--secondary)); transition: height .8s cubic-bezier(.34,1.56,.64,1); }
+    .cal-day .kcal { font-size: 11px; color: var(--primary); font-weight: 700; }
+
+    .day-nav {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px;
+      animation: fadeUp .5s .15s ease both;
+    }
+    .nav-btn {
+      width: 42px; height: 42px; border-radius: 50%;
+      border: 2px solid rgba(16,185,129,.3);
+      background: rgba(16,185,129,.1);
+      color: var(--primary);
+      font-size: 20px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .2s, border-color .2s, transform .15s;
+    }
+    .nav-btn:hover { background: rgba(16,185,129,.22); border-color: rgba(16,185,129,.55); transform: scale(1.08); }
+    .nav-btn:disabled { opacity: .3; cursor: not-allowed; transform: none; }
+    .day-label { text-align: center; }
+    .day-label h3 { font-size: 20px; font-weight: 800; color: #fff; }
+    .day-label span { font-size: 12px; color: var(--text-dim); }
+
+    .meals-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 14px;
+      animation: fadeUp .45s .2s ease both;
+    }
+    .meal-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      overflow: hidden;
+      transition: transform .2s, box-shadow .2s, border-color .2s;
+    }
+    .meal-card:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(0,0,0,.3); border-color: rgba(16,185,129,.35); }
+    .meal-header {
+      padding: 14px 18px 10px;
+      display: flex; align-items: center; gap: 12px;
+      border-bottom: 1px solid rgba(255,255,255,.05);
+    }
+    .meal-icon {
+      width: 38px; height: 38px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .meal-icon svg { width: 18px; height: 18px; }
+    .icon-cafe svg    { stroke: #fbbf24; }
+    .icon-lanche svg  { stroke: #34d399; }
+    .icon-almoco svg  { stroke: #f87171; }
+    .icon-jantar svg  { stroke: #a78bfa; }
+    .icon-ceia svg    { stroke: #94a3b8; }
+    .meal-title { font-size: 14px; font-weight: 700; color: #fff; }
+    .meal-time { font-size: 11px; color: var(--text-dim); margin-top: 1px; }
+    .meal-kcal {
+      margin-left: auto; font-size: 12px; font-weight: 700;
+      color: var(--primary);
+      background: rgba(16,185,129,.12);
+      border-radius: 10px; padding: 3px 9px;
+      white-space: nowrap;
+    }
+    .meal-body { padding: 12px 18px 16px; }
+    .meal-body ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .meal-body li {
+      font-size: 13px; color: var(--text); line-height: 1.4;
+      padding-left: 14px; position: relative;
+    }
+    .meal-body li::before {
+      content: ''; position: absolute; left: 0; top: 7px;
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--primary);
+    }
+    .meal-body li.tempero {
+      color: #d97706;
+      font-style: italic;
+      font-size: 12px;
+    }
+    .meal-body li.tempero::before { background: #d97706; }
+
+    .supps-card {
+      background: var(--card-bg);
+      border: 1px solid rgba(59,130,246,.2);
+      border-radius: 18px;
+      padding: 22px 24px;
+      margin-top: 32px;
+      animation: fadeUp .5s .25s ease both;
+    }
+    .supps-card h3 { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .supp-list { display: flex; flex-direction: column; gap: 10px; }
+    .supp-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 12px 14px;
+      background: rgba(59,130,246,.07);
+      border: 1px solid rgba(59,130,246,.15);
+      border-radius: 12px;
+      font-size: 13px; color: var(--text); line-height: 1.4;
+    }
+    .supp-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); flex-shrink: 0; margin-top: 4px; }
+
+    .icon-cafe    { background: rgba(251,191,36,.15); }
+    .icon-lanche  { background: rgba(16,185,129,.13); }
+    .icon-almoco  { background: rgba(239,68,68,.12); }
+    .icon-jantar  { background: rgba(99,102,241,.14); }
+    .icon-ceia    { background: rgba(148,163,184,.1); }
+
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 640px) {
+      .cal-summary { grid-template-columns: repeat(4, 1fr); }
+      .meals-grid { grid-template-columns: 1fr; }
+      .patient-card { grid-template-columns: 1fr; text-align: center; }
+      .patient-tags { justify-content: center; }
+      .plan-cards-row { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 400px) {
+      .cal-summary { grid-template-columns: repeat(3, 1fr); }
+      .plan-cards-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-blobs">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+</div>
+
+<header>
+  <img src="img/logos/Logo texto branco.png" alt="logo-nutrivida">
+  <section class="direito">
+    <nav class="menu">
+      <ul id="menu">
+        <li><a class="item" href="index.html">Início</a></li>    
+        <li class="dropdown">
+          <a href="#" class="seta">Serviços</a>
+          <div class="drop-menu">
+            <a class="item" href="servico.html">Nossos serviços</a>
+            <a class="item" href="imc.html">Imc</a>
+            <a class="item" href="opcoesCardapio.html" id="paginaAtual">Cardápio Personalizado</a>
+          </div>
+        </li>
+        <li><a class="item" href="sobre.html">Sobre nós</a></li>
+        <li><a class="item" href="contatos.html">Contatos</a></li>
+        <div class="login-cadastro">
+          <li><a href="entrar.html" class="login-btn">Login</a></li>
+        </div>
+      </ul>
+    </nav>
+    <div class="hamburgue" id="hamburgue"></div>
+  </section>
+</header>
+
+<div class="page">
+
+  <!-- ═══════════════════════════════════════════
+       SELETOR DE CARDÁPIOS
+  ════════════════════════════════════════════ -->
+  <div class="plan-selector-section">
+    <div class="section-title">Meus Cardápios</div>
+    <div class="plan-selector-header">
+      <h2>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Escolha um cardápio
+      </h2>
+      <span class="plan-count-badge" id="planCountBadge">4 planos disponíveis</span>
+    </div>
+    <div class="plan-cards-row" id="planCardsRow"></div>
+  </div>
+  <div class="plan-content" id="planContent">
+
+    <div class="patient-card" id="patientCard"></div>
+
+    <div class="section-title">Calorias por dia</div>
+    <div class="cal-summary" id="calSummary"></div>
+
+    <div class="section-title">Refeições do dia</div>
+    <div class="day-nav">
+      <button class="nav-btn" id="prevBtn" onclick="changeDay(-1)">&#8249;</button>
+      <div class="day-label">
+        <h3 id="dayTitle">—</h3>
+        <span id="dayKcal"></span>
+      </div>
+      <button class="nav-btn" id="nextBtn" onclick="changeDay(1)">&#8250;</button>
+    </div>
+    <div class="meals-grid" id="mealsGrid"></div>
+
+    <div class="supps-card" id="suppsCard" style="display:none">
+      <h3>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Suplementos Recomendados
+      </h3>
+      <div class="supp-list" id="suppList"></div>
+    </div>
+
+  </div>
+
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// BANCO DE CARDÁPIOS  –  adicione ou remova planos aqui
+// ═══════════════════════════════════════════════════════
+const TODOS_CARDAPIOS = [
+  {
+    // ── meta do cartão seletor ──
+    _id: 'plano-vegetariano',
+    _titulo: 'Plano Vegetariano',
+    _subtitulo: 'Foco em ganho de massa • sem lactose',
+    _svg: `<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M12 22V12'/><path d='M5 3s0 6 7 9'/><path d='M19 3s0 6-7 9'/><path d='M9 20h6'/></svg>`,
+    _tags: [{ label: 'Vegetariano', cls: 'green' }, { label: 'Sem lactose', cls: 'red' }, { label: '~2.350 kcal', cls: 'yellow' }],
+
+    // ── dados do cardápio ──
+    name:"Thais Casagrande",gender:"feminino",age:34,height:1.55,weight:80,
+    objective:"ganhar massa",imc:23,alergia:"lactose",trabalho:"professor",
+    esporte:"Nenhum",dietaAtual:"vegetariana",
+    refeicoes:[
+      {nome:"Segunda",refeicoes:[
+        {horario:"07:00",nome:"Cafe da manha",alimentos:["1 copo (250ml) de leite de amendoas","3 colheres de sopa de aveia em flocos","1 unidade de banana em rodelas","1 colher de sopa de sementes de chia","tempero: canela em po"],calorias:420},
+        {horario:"10:00",nome:"Lanche da manha",alimentos:["1 unidade de maca","5 unidades de castanha do para","tempero: sem sal"],calorias:220},
+        {horario:"13:00",nome:"Almoco",alimentos:["150g de arroz integral","100g de feijao preto","120g de proteina de soja texturizada refogada","1 prato de salada de folhas verdes com tomate e pepino","1 colher de sopa de azeite de oliva extra virgem","tempero: alho, cebola, pimenta do reino, salsinha"],calorias:650},
+        {horario:"16:00",nome:"Lanche da tarde",alimentos:["1 unidade de iogurte vegetal","30g de granola sem acucar","tempero: canela em po"],calorias:280},
+        {horario:"19:00",nome:"Jantar",alimentos:["150g de batata doce cozida","150g de tofu grelhado com legumes","1 colher de sopa de azeite de oliva extra virgem","tempero: gengibre ralado, shoyu light, alho, cebolinha"],calorias:580},
+        {horario:"21:30",nome:"Ceia",alimentos:["1 xicara (200ml) de cha de camomila","1 porcao (30g) de pasta de amendoim integral","tempero: sem sal"],calorias:180}
+      ]},
+      {nome:"Terca",refeicoes:[
+        {horario:"07:00",nome:"Cafe da manha",alimentos:["2 fatias de pao integral","2 ovos mexidos (sem leite)","1/2 unidade de abacate pequeno amassado","tempero: oregano, pimenta do reino"],calorias:450},
+        {horario:"10:00",nome:"Lanche da manha",alimentos:["1 copo (200ml) de suco verde (couve, maca, gengibre)","10 unidades de amendoas","tempero: sem sal"],calorias:230},
+        {horario:"13:00",nome:"Almoco",alimentos:["180g de macarrao integral","100g de lentilha","1 porcao de espetinhos de legumes","1 colher de sopa de azeite de oliva extra virgem","tempero: manjericao, alho, cebola, tomilho"],calorias:620},
+        {horario:"16:00",nome:"Lanche da tarde",alimentos:["1 copo (250ml) de vitamina com leite de coco, banana e pasta de amendoim","tempero: canela em po"],calorias:300},
+        {horario:"19:00",nome:"Jantar",alimentos:["1 porcao (200g) de sopa cremosa de abobora com grao de bico","2 fatias de pao integral torrado","tempero: noz-moscada, pimenta do reino, salsinha"],calorias:550},
+        {horario:"21:30",nome:"Ceia",alimentos:["1 xicara (200ml) de cha de erva-doce","1 unidade de pera","tempero: sem sal"],calorias:100}
+      ]},
+      {nome:"Quarta",refeicoes:[
+        {horario:"07:00",nome:"Cafe da manha",alimentos:["1 panqueca de aveia (com leite vegetal)","2 colheres de sopa de geleia de frutas sem acucar","50g de tofu mexido com curcuma","tempero: curcuma, pimenta do reino"],calorias:400},
+        {horario:"10:00",nome:"Lanche da manha",alimentos:["1 unidade de laranja","1 porcao (30g) de sementes de girassol","tempero: sem sal"],calorias:200},
+        {horario:"13:00",nome:"Almoco",alimentos:["150g de quinoa cozida","100g de grao de bico cozido","1 porcao de salada colorida","1 colher de sopa de azeite de oliva extra virgem","tempero: limao, salsinha, cebolinha"],calorias:600},
+        {horario:"16:00",nome:"Lanche da tarde",alimentos:["2 unidades de wraps integrais","80g de proteina de soja texturizada refogada com pimentoes","tempero: cuminho, alho, cebola"],calorias:450},
+        {horario:"19:00",nome:"Jantar",alimentos:["180g de pure de mandioquinha (com leite vegetal)","150g de cogumelos salteados com espinafre","1 colher de sopa de azeite de oliva extra virgem","tempero: alho, noz-moscada, pimenta do reino"],calorias:500},
+        {horario:"21:30",nome:"Ceia",alimentos:["1 copo (200ml) de leite de castanha de caju","1 colher de sopa de cacau em po 70%","tempero: canela em po"],calorias:150}
+      ]},
+      {nome:"Quinta",refeicoes:[
+        {horario:"07:00",nome:"Cafe da manha",alimentos:["3 torradas integrais","1/2 unidade de abacate amassado","2 ovos cozidos","tempero: pimenta do reino, oregano"],calorias:480},
+        {horario:"10:00",nome:"Lanche da manha",alimentos:["1 unidade de banana","2 colheres de sopa de pasta de amendoim integral","tempero: sem sal"],calorias:250},
+        {horario:"13:00",nome:"Almoco",alimentos:["150g de batata baroa cozida","100g de tofu mexido com legumes","1 prato de salada de folhas verdes com sementes de abobora","1 colher de sopa de azeite de oliva extra virgem","tempero: alho, cebola, paprica doce"],calorias:630},
+        {horario:"16:00",nome:"Lanche da tarde",alimentos:["1 copo (250ml) de suco de frutas vermelhas natural","1 barra de cereal integral (sem lactose)","tempero: sem sal"],calorias:200},
+        {horario:"19:00",nome:"Jantar",alimentos:["1 porcao (200g) de lasanha de berinjela com molho de tomate e queijo vegetal","tempero: oregano, manjericao, alho"],calorias:580},
+        {horario:"21:30",nome:"Ceia",alimentos:["1 xicara (200ml) de cha de mulungu","5 unidades de nozes","tempero: sem sal"],calorias:120}
+      ]},
+      {nome:"Sexta",refeicoes:[
+        {horario:"07:00",nome:"Cafe da manha",alimentos:["1 copo (250ml) de leite de aveia","3 colheres de sopa de granola sem acucar","1 unidade de mamao picado","tempero: canela em po"],calorias:400},
+        {horario:"10:00",nome:"Lanche da manha",alimentos:["100g de uvas","20g de sementes de abobora","tempero: sem sal"],calorias:200},
+        {horario:"13:00",nome:"Almoco",alimentos:["180g de cuscuz marroquino com legumes","100g de lentilha","1 colher de sopa de azeite de oliva extra virgem","tempero: hortela fresca, limao, pimenta do reino"],calorias:600},
+        {horario:"16:00",nome:"Lanche da tarde",alimentos:["1 porcao (150g) de estrogonofe vegano de proteina de soja","4 colheres de sopa de arroz integral","tempero: paprica doce, mostarda dijon, cogumelos"],calorias:500},
+        {horario:"19:00",nome:"Jantar",alimentos:["1 porcao (200g) de acaraje assado com recheio vegano e salada","tempero: gengibre, coentro, limao"],calorias:550},
+        {horario:"21:30",nome:"Ceia",alimentos:["1 xicara (200ml) de cha de passiflora","1 porcao (30g) de castanha de caju","tempero: sem sal"],calorias:180}
+      ]},
+      {nome:"Sabado",refeicoes:[
+        {horario:"08:00",nome:"Cafe da manha",alimentos:["2 fatias de pao de forma integral","40g de queijo vegano","2 ovos poche","1 unidade de tomate em rodelas","tempero: oregano, pimenta do reino"],calorias:480},
+        {horario:"11:00",nome:"Lanche da manha",alimentos:["1 copo (250ml) de vitamina com leite vegetal, morango e linhaca","tempero: sem sal"],calorias:250},
+        {horario:"14:00",nome:"Almoco",alimentos:["180g de risoto de cogumelos","1 porcao de salada de rucula com pera e nozes","1 colher de sopa de azeite de oliva extra virgem","tempero: alho poro, salsinha, pimenta do reino"],calorias:650},
+        {horario:"17:00",nome:"Lanche da tarde",alimentos:["1 tigela de acai (200g) com granola e frutas picadas","tempero: sem sal"],calorias:400},
+        {horario:"20:00",nome:"Jantar",alimentos:["1 porcao (200g) de pizza vegana de massa integral","tempero: oregano, manjericao"],calorias:600},
+        {horario:"22:00",nome:"Ceia",alimentos:["1 xicara (200ml) de cha de camomila","1 unidade de figo fresco","tempero: sem sal"],calorias:80}
+      ]},
+      {nome:"Domingo",refeicoes:[
+        {horario:"08:30",nome:"Cafe da manha",alimentos:["2 unidades de tapioca com recheio de tofu cremoso","1 copo (250ml) de suco de laranja natural","tempero: sal, pimenta do reino"],calorias:450},
+        {horario:"11:00",nome:"Lanche da manha",alimentos:["1 unidade de goiaba","1 porcao (30g) de castanhas de caju","tempero: sem sal"],calorias:250},
+        {horario:"14:00",nome:"Almoco",alimentos:["180g de feijoada vegana com feijao preto e couve refogada","150g de arroz integral","1 fatia de laranja","tempero: alho, cebola, louro, pimenta dedo de moca"],calorias:700},
+        {horario:"17:00",nome:"Lanche da tarde",alimentos:["1 unidade de pao de queijo vegano","1 copo (200ml) de cafe preto sem acucar","tempero: sem sal"],calorias:300},
+        {horario:"20:00",nome:"Jantar",alimentos:["1 porcao (250g) de caldo verde vegano com batata, couve e linguica vegetal","2 fatias de pao integral","tempero: alho, pimenta do reino, salsinha"],calorias:580},
+        {horario:"22:00",nome:"Ceia",alimentos:["1 xicara (200ml) de cha de melissa","1/2 unidade de abacate pequeno","tempero: sem sal"],calorias:150}
+      ]}
+    ],
+    suplementos:{suplementos_gerais:["Proteina vegetal em po (para auxiliar no aporte proteico e ganho de massa)","Creatina (para melhora da forca, recuperacao e ganho de massa muscular)","Multivitaminico (para garantir aporte de vitaminas e minerais essenciais)","Omega 3 (anti-inflamatorio e importante para a saude cerebral e cardiovascular)","Vitamina D (importante para saude ossea e imunidade, comumente deficiente)"]},
+    grafico:[{dia:"Segunda",caloriasTotais:2330},{dia:"Terca",caloriasTotais:2250},{dia:"Quarta",caloriasTotais:2300},{dia:"Quinta",caloriasTotais:2260},{dia:"Sexta",caloriasTotais:2430},{dia:"Sabado",caloriasTotais:2460},{dia:"Domingo",caloriasTotais:2430}]
+  },
+
+  // ── PLANO 2: LOW CARB ──────────────────────────────────────────────
+  {
+    _id: 'plano-lowcarb',
+    _titulo: 'Plano Low Carb',
+    _subtitulo: 'Foco em emagrecimento • rica em proteínas',
+    _svg: `<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.25-2-2-3.5-.5-5.5.5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.5.5-2.5 1.5-3.5'/></svg>`,
+    _tags: [{ label: 'Low Carb', cls: 'blue' }, { label: 'Ovo-lacto', cls: 'green' }, { label: '~1.800 kcal', cls: 'yellow' }],
+
+    name:"Thais Casagrande",gender:"feminino",age:34,height:1.55,weight:80,
+    objective:"emagrecer",imc:23,alergia:"nenhuma",trabalho:"professor",
+    esporte:"Nenhum",dietaAtual:"low carb",
+    refeicoes:[
+      {nome:"Segunda",refeicoes:[
+        {horario:"07:00",nome:"Cafe da manha",alimentos:["3 ovos mexidos com manteiga ghee","50g de queijo minas frescal","1 xicara de cha verde sem acucar","tempero: sal, pimenta do reino"],calorias:380},
+        {horario:"10:00",nome:"Lanche da manha",alimentos:["10 unidades de amendoas","1 unidade de ovo cozido","tempero: sem sal"],calorias:200},
+        {horario:"13:00",nome:"Almoco",alimentos:["200g de frango grelhado","1 porcao de salada de folhas com azeite e limao","1 porcao de brocolis no vapor","tempero: alho, sal, pimenta do reino, limao"],calorias:520},
+        {horario:"16:00",nome:"Lanche da tarde",alimentos:["1 porcao (150g) de iogurte grego integral","30g de nozes picadas","tempero: canela em po"],calorias:260},
+        {horario:"19:00",nome:"Jantar",alimentos:["200g de salmao grelhado","150g de aspargos salteados na manteiga","1 colher de sopa de azeite extra virgem","tempero: alho, sal, limao, dill"],calorias:480},
+        {horario:"21:30",nome:"Ceia",alimentos:["1 xicara de cha de camomila","20g de chocolate amargo 85%","tempero: sem sal"],calorias:100}
+      ]},
+      {nome:"Terca",refeicoes:[
+        {horario:"07:00",nome:"Cafe da manha",alimentos:["Omelete de 3 ovos com espinafre e queijo","1 xicara de cafe preto sem acucar","tempero: sal, pimenta do reino, oregano"],calorias:360},
+        {horario:"10:00",nome:"Lanche da manha",alimentos:["1 porcao (100g) de queijo cottage","Pepino fatiado","tempero: azeite, sal, oregano"],calorias:180},
+        {horario:"13:00",nome:"Almoco",alimentos:["200g de carne bovina (patinho) grelhada","1 porcao de couve-flor assada","Salada de rucula com tomate cereja","tempero: alho, sal, pimenta, limao"],calorias:540},
+        {horario:"16:00",nome:"Lanche da tarde",alimentos:["1/2 unidade de abacate","5 unidades de castanha do para","tempero: sem sal"],calorias:250},
+        {horario:"19:00",nome:"Jantar",alimentos:["150g de frango ao forno com ervas","200g de abobrinha refogada no azeite","tempero: alho, tomilho, pimenta do reino"],calorias:440},
+        {horario:"21:30",nome:"Ceia",alimentos:["1 xicara de cha de melissa","tempero: sem sal"],calorias:10}
+      ]},
+      {nome:"Quarta",refeicoes:[
+        {horario:"07:00",nome:"Cafe da manha",alimentos:["2 ovos cozidos","1 fatia de presunto sem amido","30g de queijo prato","tempero: pimenta do reino, oregano"],calorias:320},
+        {horario:"10:00",nome:"Lanche da manha",alimentos:["1 porcao de oleaginosas mix (15g)","1 unidade de ovo cozido","tempero: sem sal"],calorias:200},
+        {horario:"13:00",nome:"Almoco",alimentos:["200g de atum em lata (agua)","Salada de folhas verdes com pepino e azeitonas","1 colher de azeite extra virgem","tempero: limao, sal, oregano"],calorias:480},
+        {horario:"16:00",nome:"Lanche da tarde",alimentos:["1 porcao (150g) de iogurte grego sem lactose","1 colher de sopa de sementes de chia","tempero: canela em po"],calorias:220},
+        {horario:"19:00",nome:"Jantar",alimentos:["180g de tilapia grelhada","150g de espinafre refogado no azeite","tempero: alho, sal, pimenta do reino, limao"],calorias:420},
+        {horario:"21:30",nome:"Ceia",alimentos:["20g de chocolate amargo 70%","1 xicara de cha de erva-doce","tempero: sem sal"],calorias:100}
+      ]},
+      {nome:"Quinta",refeicoes:[
+        {horario:"07:00",nome:"Cafe da manha",alimentos:["Omelete de 2 ovos com tomate e queijo minas","1 xicara de cafe com leite de coco","tempero: sal, pimenta do reino"],calorias:380},
+        {horario:"10:00",nome:"Lanche da manha",alimentos:["1 porcao de pasta de amendoim natural (15g)","Aipo fatiado","tempero: sem sal"],calorias:170},
+        {horario:"13:00",nome:"Almoco",alimentos:["200g de frango desfiado ao forno","150g de couve-flor gratinada com queijo","Salada de folhas verdes","tempero: alho, paprica, sal, pimenta do reino"],calorias:530},
+        {horario:"16:00",nome:"Lanche da tarde",alimentos:["2 ovos cozidos","20g de castanha de caju","tempero: sem sal"],calorias:240},
+        {horario:"19:00",nome:"Jantar",alimentos:["150g de carne moida grelhada","150g de abobrinha recheada com queijo","tempero: alho, cebola, sal, oregano"],calorias:490},
+        {horario:"21:30",nome:"Ceia",alimentos:["1 xicara de cha de mulungu","tempero: sem sal"],calorias:5}
+      ]},
+      {nome:"Sexta",refeicoes:[
+        {horario:"07:00",nome:"Cafe da manha",alimentos:["3 ovos mexidos com manteiga e ervas","1 xicara de cha verde","tempero: sal, cebolinha, pimenta do reino"],calorias:340},
+        {horario:"10:00",nome:"Lanche da manha",alimentos:["1 porcao (100g) de queijo cottage","Tomate cereja","tempero: sal, oregano, azeite"],calorias:180},
+        {horario:"13:00",nome:"Almoco",alimentos:["200g de salmao ao forno com ervas","Salada de pepino com creme azedo","150g de aspargos grelhados","tempero: dill, limao, sal, alho"],calorias:560},
+        {horario:"16:00",nome:"Lanche da tarde",alimentos:["15g de oleaginosas mix","1 ovo cozido","tempero: sem sal"],calorias:190},
+        {horario:"19:00",nome:"Jantar",alimentos:["200g de frango ao forno com alecrim","1 porcao de brocolis com alho e azeite","tempero: alecrim, alho, sal, pimenta do reino"],calorias:460},
+        {horario:"21:30",nome:"Ceia",alimentos:["1 xicara de cha de camomila","20g de chocolate amargo 85%","tempero: sem sal"],calorias:100}
+      ]},
+      {nome:"Sabado",refeicoes:[
+        {horario:"08:30",nome:"Cafe da manha",alimentos:["Omelete de 3 ovos com presunto e queijo","1 xicara de cafe preto","tempero: sal, pimenta do reino, oregano"],calorias:400},
+        {horario:"11:00",nome:"Lanche da manha",alimentos:["1/2 unidade de abacate com sal e limao","tempero: sal, limao"],calorias:160},
+        {horario:"14:00",nome:"Almoco",alimentos:["250g de picanha grelhada","Salada de rucula com parmesao e limao","150g de cogumelos salteados","tempero: alho, sal, pimenta do reino"],calorias:650},
+        {horario:"17:00",nome:"Lanche da tarde",alimentos:["30g de mix de oleaginosas","1 porcao (100g) de iogurte grego","tempero: canela em po"],calorias:280},
+        {horario:"20:00",nome:"Jantar",alimentos:["200g de frango xadrez low carb (sem amido de milho)","150g de brocolis e pimentao refogados","tempero: gengibre, alho, shoyu light, gergelim"],calorias:480},
+        {horario:"22:00",nome:"Ceia",alimentos:["1 xicara de cha de camomila","tempero: sem sal"],calorias:5}
+      ]},
+      {nome:"Domingo",refeicoes:[
+        {horario:"09:00",nome:"Cafe da manha",alimentos:["2 ovos poche","40g de salmao defumado","1 xicara de cafe com leite de coco","tempero: sal, pimenta do reino, alcaparras"],calorias:380},
+        {horario:"12:00",nome:"Lanche da manha",alimentos:["1 unidade de ovo cozido","20g de castanhas","tempero: sem sal"],calorias:180},
+        {horario:"14:30",nome:"Almoco",alimentos:["300g de costela assada lentamente","Salada de folhas com vinagrete","200g de chuchu cozido","tempero: alho, sal, pimenta do reino, louro"],calorias:700},
+        {horario:"17:30",nome:"Lanche da tarde",alimentos:["1 porcao (150g) de iogurte grego com nozes","tempero: canela em po"],calorias:250},
+        {horario:"20:00",nome:"Jantar",alimentos:["200g de omelete recheada de legumes e queijo","Salada de folhas verdes","tempero: sal, pimenta do reino, oregano"],calorias:420},
+        {horario:"22:00",nome:"Ceia",alimentos:["1 xicara de cha de melissa","tempero: sem sal"],calorias:5}
+      ]}
+    ],
+    suplementos:{suplementos_gerais:["Proteina Whey Isolado (aporte proteico diario)","Omega 3 (anti-inflamatorio e cardiovascular)","Vitamina D + K2 (saude ossea e imunidade)","Magnesio Quelato (relaxamento muscular e sono)","Eletrolitos (hidratacao em dieta low carb)"]},
+    grafico:[{dia:"Segunda",caloriasTotais:1940},{dia:"Terca",caloriasTotais:1780},{dia:"Quarta",caloriasTotais:1740},{dia:"Quinta",caloriasTotais:1815},{dia:"Sexta",caloriasTotais:1830},{dia:"Sabado",caloriasTotais:1975},{dia:"Domingo",caloriasTotais:1935}]
+  },
+
+  // ── PLANO 3: MEDITERRÂNEO ─────────────────────────────────────────
+  {
+    _id: 'plano-mediterraneo',
+    _titulo: 'Dieta Mediterrânea',
+    _subtitulo: 'Saúde cardiovascular • equilíbrio',
+    _svg: `<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='4'/><path d='M12 2v2'/><path d='M12 20v2'/><path d='M4.93 4.93l1.41 1.41'/><path d='M17.66 17.66l1.41 1.41'/><path d='M2 12h2'/><path d='M20 12h2'/><path d='M6.34 17.66l-1.41 1.41'/><path d='M19.07 4.93l-1.41 1.41'/></svg>`,
+    _tags: [{ label: 'Mediterrânea', cls: 'purple' }, { label: 'Balanceada', cls: 'green' }, { label: '~2.100 kcal', cls: 'yellow' }],
+
+    name:"Thais Casagrande",gender:"feminino",age:34,height:1.55,weight:80,
+    objective:"saude e bem-estar",imc:23,alergia:"nenhuma",trabalho:"professor",
+    esporte:"Nenhum",dietaAtual:"mediterranea",
+    refeicoes:[
+      {nome:"Segunda",refeicoes:[
+        {horario:"07:00",nome:"Cafe da manha",alimentos:["2 fatias de pao integral de fermentacao natural","2 ovos mexidos com tomate","1 xicara de cha de hortelã","tempero: oregano, azeite extra virgem, sal"],calorias:400},
+        {horario:"10:00",nome:"Lanche da manha",alimentos:["1 porcao de hummus (80g) com palitos de cenoura e pepino","tempero: paprica, azeite"],calorias:220},
+        {horario:"13:00",nome:"Almoco",alimentos:["150g de frango grelhado com ervas","100g de tabuleh (trigo, salsinha, tomate, limao)","Salada grega com azeitonas e queijo feta","1 colher de sopa de azeite extra virgem","tempero: limaoo, oregano, menta fresca"],calorias:620},
+        {horario:"16:00",nome:"Lanche da tarde",alimentos:["1 unidade de figo fresco","30g de nozes","tempero: sem sal"],calorias:200},
+        {horario:"19:00",nome:"Jantar",alimentos:["200g de peixe branco assado com tomates e azeitonas","100g de arroz integral","Legumes assados (berinjela, abobrinha, pimentao)","1 colher de sopa de azeite extra virgem","tempero: alho, tomilho, limao"],calorias:580},
+        {horario:"21:30",nome:"Ceia",alimentos:["1 xicara de cha de camomila","1 porcao pequena de frutas frescas","tempero: sem sal"],calorias:80}
+      ]},
+      {nome:"Terca",refeicoes:[
+        {horario:"07:00",nome:"Cafe da manha",alimentos:["1 tigela de iogurte grego com mel e nozes","1 unidade de fruta da estacao","1 xicara de cafe preto","tempero: canela em po"],calorias:380},
+        {horario:"10:00",nome:"Lanche da manha",alimentos:["1 punhado (30g) de amendoas","1 unidade de damasco seco","tempero: sem sal"],calorias:200},
+        {horario:"13:00",nome:"Almoco",alimentos:["200g de lula grelhada com alho e limao","150g de bulgur cozido com legumes","Salada de folhas com azeite e balsâmico","tempero: alho, limao, salsinha, azeite"],calorias:580},
+        {horario:"16:00",nome:"Lanche da tarde",alimentos:["1 fatia de pao integral com pasta de azeitona","tempero: oregano, azeite"],calorias:220},
+        {horario:"19:00",nome:"Jantar",alimentos:["1 porcao de moussaka de legumes (berinjela, carne moida, molho bechamel leve)","Salada de tomate com queijo feta","tempero: canela, noz-moscada, oregano, alho"],calorias:560},
+        {horario:"21:30",nome:"Ceia",alimentos:["1 xicara de cha de erva-doce","1 unidade de tâmara","tempero: sem sal"],calorias:90}
+      ]},
+      {nome:"Quarta",refeicoes:[
+        {horario:"07:00",nome:"Cafe da manha",alimentos:["2 ovos poches sobre pao integral","1/2 unidade de abacate com limao","1 xicara de cha verde","tempero: sal, pimenta do reino, azeite"],calorias:420},
+        {horario:"10:00",nome:"Lanche da manha",alimentos:["1 punhado de uvas verdes","20g de pistache","tempero: sem sal"],calorias:200},
+        {horario:"13:00",nome:"Almoco",alimentos:["200g de sardinha grelhada ao limao","150g de quinoa com ervas frescas","Salada de folhas com pepino e azeitonas","tempero: salsinha, menta, limao, azeite"],calorias:600},
+        {horario:"16:00",nome:"Lanche da tarde",alimentos:["1 porcao de pao pita com hummus e legumes crus","tempero: paprica, azeite"],calorias:250},
+        {horario:"19:00",nome:"Jantar",alimentos:["1 porcao de shakshuka (ovos no molho de tomate e pimentoes)","2 fatias de pao integral","tempero: cuminho, paprica, coentro, alho"],calorias:480},
+        {horario:"21:30",nome:"Ceia",alimentos:["1 xicara de cha de melissa","1 porcao pequena de frutas secas","tempero: sem sal"],calorias:100}
+      ]},
+      {nome:"Quinta",refeicoes:[
+        {horario:"07:00",nome:"Cafe da manha",alimentos:["1 tigela de aveia com mel, nozes e frutas vermelhas","1 xicara de cafe com leite integral","tempero: canela em po"],calorias:420},
+        {horario:"10:00",nome:"Lanche da manha",alimentos:["1 porcao de queijo branco frescal","1 tomate em rodelas com oregano","tempero: oregano, azeite, sal"],calorias:180},
+        {horario:"13:00",nome:"Almoco",alimentos:["200g de frango asado com ervas mediterrâneas","150g de lentilha cozida com legumes","Salada de pepino com iogurte (tzatziki)","tempero: alho, tomilho, alecrim, azeite"],calorias:620},
+        {horario:"16:00",nome:"Lanche da tarde",alimentos:["1 punhado (25g) de mix de oleaginosas","1 unidade de pera","tempero: sem sal"],calorias:220},
+        {horario:"19:00",nome:"Jantar",alimentos:["200g de bacalhau assado com tomates, azeitonas e alcaparras","100g de batata doce cozida","Salada de folhas verdes","tempero: alho, oregano, limao, azeite"],calorias:580},
+        {horario:"21:30",nome:"Ceia",alimentos:["1 xicara de cha de mulungu","tempero: sem sal"],calorias:5}
+      ]},
+      {nome:"Sexta",refeicoes:[
+        {horario:"07:00",nome:"Cafe da manha",alimentos:["Panqueca de aveia com mel e frutas frescas","1 xicara de cafe preto","tempero: canela em po"],calorias:380},
+        {horario:"10:00",nome:"Lanche da manha",alimentos:["1 porcao de hummus com palitos de legumes","tempero: paprica, azeite, limao"],calorias:200},
+        {horario:"13:00",nome:"Almoco",alimentos:["200g de robalo grelhado com ervas","150g de couscous marroquino com passas e pinoli","Salada verde com vinagrete de limao","tempero: cuminho, coentro, limao, azeite"],calorias:620},
+        {horario:"16:00",nome:"Lanche da tarde",alimentos:["1 unidade de figo seco","30g de pistache","tempero: sem sal"],calorias:220},
+        {horario:"19:00",nome:"Jantar",alimentos:["1 porcao de pasta de trigo duro com molho de tomate fresco e azeitonas","Salada de rucula com parmesao","tempero: manjericao, alho, azeite, pimenta do reino"],calorias:560},
+        {horario:"21:30",nome:"Ceia",alimentos:["1 xicara de cha de camomila","1 colher de mel","tempero: sem sal"],calorias:70}
+      ]},
+      {nome:"Sabado",refeicoes:[
+        {horario:"08:30",nome:"Cafe da manha",alimentos:["Shakshuka de 3 ovos com queijo feta","2 fatias de pao de fermentacao natural","1 xicara de cafe preto","tempero: paprica, cuminho, coentro, alho"],calorias:480},
+        {horario:"11:00",nome:"Lanche da manha",alimentos:["1 tigela de iogurte grego com frutas vermelhas e granola","tempero: mel, canela"],calorias:280},
+        {horario:"14:00",nome:"Almoco",alimentos:["1 porcao de paella de frutos do mar (caracao, lula, camarao)","Salada de folhas verdes","tempero: acafrao, alho, tomate, azeite"],calorias:680},
+        {horario:"17:00",nome:"Lanche da tarde",alimentos:["1 taça de vinho tinto seco (opcional)","30g de queijo parmesao","tempero: sem sal"],calorias:220},
+        {horario:"20:00",nome:"Jantar",alimentos:["200g de frango grelhado com pesto de manjericao","Legumes assados no azeite","tempero: manjericao, pinhao, alho, azeite"],calorias:550},
+        {horario:"22:00",nome:"Ceia",alimentos:["1 xicara de cha de camomila","1 quadrado de chocolate amargo","tempero: sem sal"],calorias:80}
+      ]},
+      {nome:"Domingo",refeicoes:[
+        {horario:"09:00",nome:"Cafe da manha",alimentos:["Bruschetta com tomate, manjericao e azeite","2 ovos mexidos","1 xicara de cafe com leite","tempero: alho, sal, pimenta do reino, manjericao fresco"],calorias:420},
+        {horario:"12:00",nome:"Lanche da manha",alimentos:["1 porcao de queijo feta com tomate e oregano","tempero: oregano, azeite"],calorias:180},
+        {horario:"14:30",nome:"Almoco",alimentos:["1 porcao de cordeiro assado lentamente com ervas","200g de batata assada com alho e alecrim","Salada grega completa","tempero: alecrim, tomilho, alho, limao"],calorias:720},
+        {horario:"17:30",nome:"Lanche da tarde",alimentos:["1 porcao de baklava (pequena, ocasional)","1 xicara de cafe turco","tempero: mel, pistache"],calorias:250},
+        {horario:"20:00",nome:"Jantar",alimentos:["1 porcao de sopa de legumes com grao de bico e macarrao","2 fatias de pao integral","tempero: alho, tomate, oregano, azeite"],calorias:460},
+        {horario:"22:00",nome:"Ceia",alimentos:["1 xicara de cha de melissa","1 unidade de damasco fresco","tempero: sem sal"],calorias:70}
+      ]}
+    ],
+    suplementos:{suplementos_gerais:["Omega 3 de alta pureza (EPA + DHA para saude cardiovascular)","Vitamina D3 (essencial para imunidade e saude ossea)","Magnesio Quelato (relaxamento, sono e funcao muscular)","Coenzima Q10 (energia celular e antioxidante)"]},
+    grafico:[{dia:"Segunda",caloriasTotais:2100},{dia:"Terca",caloriasTotais:2030},{dia:"Quarta",caloriasTotais:2050},{dia:"Quinta",caloriasTotais:2025},{dia:"Sexta",caloriasTotais:2050},{dia:"Sabado",caloriasTotais:2290},{dia:"Domingo",caloriasTotais:2100}]
+  },
+
+  // ── PLANO 4: DETOX / LEVE ─────────────────────────────────────────
+  {
+    _id: 'plano-detox',
+    _titulo: 'Semana Detox',
+    _subtitulo: 'Redução do inchaço • mais leveza',
+    _svg: `<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M17 8h1a4 4 0 010 8h-1'/><path d='M3 8h14v9a4 4 0 01-4 4H7a4 4 0 01-4-4V8z'/><path d='M6 2v2'/><path d='M10 2v2'/><path d='M14 2v2'/></svg>`,
+    _tags: [{ label: 'Detox', cls: 'blue' }, { label: 'Plant-based', cls: 'green' }, { label: '~1.600 kcal', cls: 'red' }],
+
+    name:"Thais Casagrande",gender:"feminino",age:34,height:1.55,weight:80,
+    objective:"detox e leveza",imc:23,alergia:"lactose",trabalho:"professor",
+    esporte:"Nenhum",dietaAtual:"detox plant-based",
+    refeicoes:[
+      {nome:"Segunda",refeicoes:[
+        {horario:"07:00",nome:"Cafe da manha",alimentos:["1 copo (350ml) de agua morna com limao","1 tigela de fruta picada (mamao, abacaxi, morcango)","1 colher de sopa de semente de chia hidratada","tempero: gengibre ralado"],calorias:200},
+        {horario:"10:00",nome:"Lanche da manha",alimentos:["1 copo de suco verde detox (couve, pepino, limao, gengibre, maca verde)","tempero: sem sal"],calorias:100},
+        {horario:"13:00",nome:"Almoco",alimentos:["1 tigela grande de sopa de legumes sem sal","150g de frango cozido desfiado","Salada de folhas verdes com limao e azeite","tempero: alho, cebola, salsinha, cebola, limao"],calorias:480},
+        {horario:"16:00",nome:"Lanche da tarde",alimentos:["1 copo de agua de coco natural","10 unidades de amendoas","tempero: sem sal"],calorias:180},
+        {horario:"19:00",nome:"Jantar",alimentos:["1 tigela de caldo de legumes com gengibre e curcuma","150g de peixe branco cozido no vapor","Brocolis e cenoura no vapor","tempero: gengibre, curcuma, limao, sal himalaia"],calorias:380},
+        {horario:"21:00",nome:"Ceia",alimentos:["1 xicara de cha detox (dente de leao ou bardana)","tempero: sem sal"],calorias:5}
+      ]},
+      {nome:"Terca",refeicoes:[
+        {horario:"07:00",nome:"Cafe da manha",alimentos:["1 copo de suco de melancia com hortelã","1 fatia de melao","1 porcao de aveia com agua e banana","tempero: canela em po, gengibre"],calorias:250},
+        {horario:"10:00",nome:"Lanche da manha",alimentos:["1 copo de agua de coco","5 unidades de castanha do para","tempero: sem sal"],calorias:160},
+        {horario:"13:00",nome:"Almoco",alimentos:["Salada completa: folhas, grão de bico, tomate, pepino, beterraba crua","1 colher de sopa de azeite extra virgem","tempero: limao, salsinha, sal himalaia, oregano"],calorias:420},
+        {horario:"16:00",nome:"Lanche da tarde",alimentos:["1 porcao de frutas vermelhas (morango, mirtilo, framboesa)","tempero: sem sal"],calorias:90},
+        {horario:"19:00",nome:"Jantar",alimentos:["1 porcao (300ml) de caldo verde detox com couve, batata e legumes","tempero: alho, sal himalaia, pimenta do reino"],calorias:300},
+        {horario:"21:00",nome:"Ceia",alimentos:["1 xicara de cha de gengibre com mel","tempero: limao, mel"],calorias:40}
+      ]},
+      {nome:"Quarta",refeicoes:[
+        {horario:"07:00",nome:"Cafe da manha",alimentos:["Smoothie verde (espinafre, leite de coco, banana, chia)","1 fatia de abacaxi natural","tempero: gengibre, hortelã"],calorias:280},
+        {horario:"10:00",nome:"Lanche da manha",alimentos:["1 copo de suco de cenoura com laranja e gengibre","tempero: sem sal"],calorias:100},
+        {horario:"13:00",nome:"Almoco",alimentos:["150g de frango no vapor","1 porcao de quinoa com legumes","Salada de folhas com beterraba e cenoura","tempero: limao, azeite, salsinha"],calorias:520},
+        {horario:"16:00",nome:"Lanche da tarde",alimentos:["1 porcao de abacate com limao","tempero: sal himalaia, limao"],calorias:160},
+        {horario:"19:00",nome:"Jantar",alimentos:["1 porcao de miso soup com tofu e wakame","150g de salmao cozido no vapor","Pepino e cenoura em palitos","tempero: shoyu light, gengibre, gergelim"],calorias:380},
+        {horario:"21:00",nome:"Ceia",alimentos:["1 xicara de cha de hortelã","tempero: sem sal"],calorias:5}
+      ]},
+      {nome:"Quinta",refeicoes:[
+        {horario:"07:00",nome:"Cafe da manha",alimentos:["1 tigela de frutas picadas com semente de chia e mel","1 copo de agua morna com limao e curcuma","tempero: curcuma, pimenta do reino (potencializa curcuma)"],calorias:220},
+        {horario:"10:00",nome:"Lanche da manha",alimentos:["1 copo de suco verde detox","tempero: sem sal"],calorias:100},
+        {horario:"13:00",nome:"Almoco",alimentos:["Sopa de abobora com gengibre e leite de coco","150g de tofu grelhado","Salada verde com brotos","tempero: curcuma, gengibre, sal himalaia, azeite"],calorias:480},
+        {horario:"16:00",nome:"Lanche da tarde",alimentos:["1 porcao de frutas vermelhas frescas","15g de sementes de girassol","tempero: sem sal"],calorias:130},
+        {horario:"19:00",nome:"Jantar",alimentos:["Stir-fry leve de legumes (brocolis, cenoura, vagem, cogumelos)","150g de frango grelhado","tempero: alho, gengibre, shoyu light, cebolinha"],calorias:400},
+        {horario:"21:00",nome:"Ceia",alimentos:["1 xicara de cha de camomila com lavanda","tempero: sem sal"],calorias:5}
+      ]},
+      {nome:"Sexta",refeicoes:[
+        {horario:"07:00",nome:"Cafe da manha",alimentos:["Smoothie roxo (mirtilo, beterraba, banana, leite vegetal)","tempero: chia, linhaca"],calorias:260},
+        {horario:"10:00",nome:"Lanche da manha",alimentos:["1 copo de agua de coco","1 banana pequena","tempero: sem sal"],calorias:140},
+        {horario:"13:00",nome:"Almoco",alimentos:["Salada detox completa (folhas, grão de bico, beterraba, cenoura, semente de abobora)","150g de atum em lata (agua)","tempero: limao, azeite, salsinha, oregano"],calorias:480},
+        {horario:"16:00",nome:"Lanche da tarde",alimentos:["1 porcao de abacaxi com hortelã","tempero: sem sal"],calorias:80},
+        {horario:"19:00",nome:"Jantar",alimentos:["1 tigela de sopa de lentilha com curcuma e limao","Salada de folhas verdes","tempero: curcuma, cuminho, limao, alho"],calorias:380},
+        {horario:"21:00",nome:"Ceia",alimentos:["1 xicara de cha de erva-doce","tempero: sem sal"],calorias:5}
+      ]},
+      {nome:"Sabado",refeicoes:[
+        {horario:"08:00",nome:"Cafe da manha",alimentos:["Acai bowl com frutas frescas e granola (porcao reduzida)","1 copo de agua morna com limao","tempero: coco ralado sem acucar"],calorias:320},
+        {horario:"11:00",nome:"Lanche da manha",alimentos:["1 copo de vitamina de mamao com gengibre (sem lactose)","tempero: gengibre, canela"],calorias:150},
+        {horario:"14:00",nome:"Almoco",alimentos:["1 porcao de salada thai com fitas de pepino, cenoura, mango e camarao","tempero: limao, molho de peixe leve, coentro, pimenta"],calorias:420},
+        {horario:"17:00",nome:"Lanche da tarde",alimentos:["1 tigela de melancia com folhas de menta","tempero: sem sal"],calorias:80},
+        {horario:"20:00",nome:"Jantar",alimentos:["1 porcao de caldo de miso com vegetais e tofu","Salada de pepino com gergelim","tempero: shoyu light, gengibre, limao"],calorias:300},
+        {horario:"22:00",nome:"Ceia",alimentos:["1 xicara de cha de camomila","tempero: sem sal"],calorias:5}
+      ]},
+      {nome:"Domingo",refeicoes:[
+        {horario:"08:30",nome:"Cafe da manha",alimentos:["1 porcao de vitamina detox (couve, abacaxi, hortelã, agua de coco)","1 fatia de pao integral com avocado","tempero: limao, pimenta do reino"],calorias:280},
+        {horario:"11:00",nome:"Lanche da manha",alimentos:["1 porcao de frutas variadas da estacao","tempero: sem sal"],calorias:100},
+        {horario:"14:00",nome:"Almoco",alimentos:["1 porcao de sopa de minestrone detox com legumes variados","150g de frango desfiado","tempero: alho, tomilho, sal himalaia, azeite"],calorias:480},
+        {horario:"17:00",nome:"Lanche da tarde",alimentos:["1 copo de suco de beterraba com laranja e gengibre","tempero: sem sal"],calorias:120},
+        {horario:"20:00",nome:"Jantar",alimentos:["Salada completa de grao de bico com legumes assados","1 ovo cozido","tempero: limao, azeite, salsinha, paprica"],calorias:420},
+        {horario:"22:00",nome:"Ceia",alimentos:["1 xicara de cha de melissa","1 colher de mel puro","tempero: sem sal"],calorias:50}
+      ]}
+    ],
+    suplementos:{suplementos_gerais:["Clorofila liquida (depuradora e antioxidante)","Spirulina em po (superalimento rico em proteinas e antioxidantes)","Vitamina C lipossomal (imunidade e antioxidante potente)","Probiotico (equilibrio da flora intestinal durante o detox)","Magnésio (combate retencao de liquidos e fadiga)"]},
+    grafico:[{dia:"Segunda",caloriasTotais:1343},{dia:"Terca",caloriasTotais:1260},{dia:"Quarta",caloriasTotais:1443},{dia:"Quinta",caloriasTotais:1335},{dia:"Sexta",caloriasTotais:1345},{dia:"Sabado",caloriasTotais:1275},{dia:"Domingo",caloriasTotais:1450}]
+  }
+];
+
+// ═══════════════════════════════════════════════════════
+// ESTADO
+// ═══════════════════════════════════════════════════════
+let activePlanIndex = 0;
+let currentDay = 0;
+
+// ═══════════════════════════════════════════════════════
+// SELETOR DE PLANOS
+// ═══════════════════════════════════════════════════════
+function renderPlanSelector() {
+  const row = document.getElementById('planCardsRow');
+  document.getElementById('planCountBadge').textContent = `${TODOS_CARDAPIOS.length} planos disponíveis`;
+  row.innerHTML = '';
+
+  TODOS_CARDAPIOS.forEach((plano, i) => {
+    const totalCal = plano.grafico.reduce((s, d) => s + d.caloriasTotais, 0);
+    const mediaCal = Math.round(totalCal / plano.grafico.length);
+
+
+    const div = document.createElement('div');
+    div.className = 'plan-card' + (i === activePlanIndex ? ' active' : '');
+    div.onclick = () => selectPlan(i);
+    div.innerHTML = `
+      <div class="plan-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0a1f1a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <span class="plan-emoji">${plano._svg}</span>
+      <div class="plan-card-title">${plano._titulo}</div>
+      <div class="plan-card-sub">${plano._subtitulo}</div>
+      <div class="plan-kcal-row">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M12 6v6l4 2"/></svg>
+        Média diária: <strong>${mediaCal} kcal</strong>
+      </div>`;
+    row.appendChild(div);
+  });
+}
+
+function selectPlan(i) {
+  if (i === activePlanIndex) return;
+  activePlanIndex = i;
+  currentDay = 0;
+
+  // animação de saída
+  const content = document.getElementById('planContent');
+  content.classList.add('switching');
+  setTimeout(() => {
+    renderAllContent();
+    content.classList.remove('switching');
+  }, 300);
+
+  renderPlanSelector();
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER DO CONTEÚDO (igual ao original, mas usa CARDAPIO dinâmico)
+// ═══════════════════════════════════════════════════════
+function getCardapio() { return TODOS_CARDAPIOS[activePlanIndex]; }
+
+const MEAL_SVGS = {
+  cafe:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 010 8h-1"/><path d="M3 8h14v9a4 4 0 01-4 4H7a4 4 0 01-4-4V8z"/><line x1="6" y1="2" x2="6" y2="5"/><line x1="10" y1="2" x2="10" y2="5"/></svg>`,
+  lanche: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`,
+  almoco: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>`,
+  jantar: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 009 9 9 9 0 11-9-9z"/></svg>`,
+  ceia:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 009 9 9 9 0 11-9-9z"/><circle cx="12" cy="12" r="3"/></svg>`,
+};
+
+function getMealMeta(nome) {
+  const n = nome.toLowerCase();
+  if (n.includes('cafe'))    return { svg: MEAL_SVGS.cafe,   cls: 'icon-cafe' };
+  if (n.includes('almoco'))  return { svg: MEAL_SVGS.almoco, cls: 'icon-almoco' };
+  if (n.includes('jantar'))  return { svg: MEAL_SVGS.jantar, cls: 'icon-jantar' };
+  if (n.includes('ceia'))    return { svg: MEAL_SVGS.ceia,   cls: 'icon-ceia' };
+  return { svg: MEAL_SVGS.lanche, cls: 'icon-lanche' };
+}
+
+function renderPatient() {
+  const c = getCardapio();
+  const initials = c.name.split(' ').map(w=>w[0]).slice(0,2).join('');
+  document.getElementById('patientCard').innerHTML = `
+    <div class="patient-avatar">${initials}</div>
+    <div class="patient-info">
+      <h2>${c.name}</h2>
+      <div class="patient-tags">
+        <span class="tag">${c.age} anos</span>
+        <span class="tag">${c.height}m · ${c.weight}kg</span>
+        <span class="tag green">${c.objective}</span>
+        <span class="tag yellow">${c.dietaAtual}</span>
+        ${c.alergia && c.alergia !== 'nenhuma' ? `<span class="tag red"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:3px"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>${c.alergia}</span>` : ''}
+        <span class="tag">${c.trabalho}</span>
+      </div>
+    </div>`;
+}
+
+function renderCalBars() {
+  const c = getCardapio();
+  const maxCal = Math.max(...c.grafico.map(d=>d.caloriasTotais));
+  const container = document.getElementById('calSummary');
+  container.innerHTML = '';
+  const shortNames = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+  c.grafico.forEach((d, i) => {
+    const pct = Math.round((d.caloriasTotais / maxCal) * 48);
+    container.innerHTML += `
+      <div class="cal-day" onclick="goToDay(${i})" title="${d.dia}: ${d.caloriasTotais} kcal" style="cursor:pointer">
+        <div class="day-name">${shortNames[i]}</div>
+        <div class="cal-bar-wrap">
+          <div class="cal-bar" style="height:${pct}px"></div>
+        </div>
+        <div class="kcal">${(d.caloriasTotais/1000).toFixed(2)}k</div>
+      </div>`;
+  });
+}
+
+const diasSemana = ['Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado','Domingo'];
+
+function renderDay() {
+  const c = getCardapio();
+  const dia = c.refeicoes[currentDay];
+  const kcal = c.grafico[currentDay].caloriasTotais;
+  document.getElementById('dayTitle').textContent = diasSemana[currentDay];
+  document.getElementById('dayKcal').textContent = `${kcal} kcal no dia`;
+  document.getElementById('prevBtn').disabled = currentDay === 0;
+  document.getElementById('nextBtn').disabled = currentDay === c.refeicoes.length - 1;
+
+  const grid = document.getElementById('mealsGrid');
+  grid.style.opacity = '0';
+  grid.style.transform = 'translateY(12px)';
+  setTimeout(() => {
+    grid.innerHTML = '';
+    dia.refeicoes.forEach(ref => {
+      const { svg, cls } = getMealMeta(ref.nome);
+      const items = ref.alimentos.map(a => {
+        if (a.toLowerCase().startsWith('tempero:'))
+          return `<li class="tempero"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:3px"><path d="M12 22V12"/><path d="M5 3s0 6 7 9"/><path d="M19 3s0 6-7 9"/></svg>${a}</li>`;
+        return `<li>${a}</li>`;
+      }).join('');
+      grid.innerHTML += `
+        <div class="meal-card">
+          <div class="meal-header">
+            <div class="meal-icon ${cls}">${svg}</div>
+            <div>
+              <div class="meal-title">${ref.nome}</div>
+              <div class="meal-time"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:3px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${ref.horario}</div>
+            </div>
+            <div class="meal-kcal">${ref.calorias} kcal</div>
+          </div>
+          <div class="meal-body"><ul>${items}</ul></div>
+        </div>`;
+    });
+    grid.style.transition = 'opacity .35s ease, transform .35s ease';
+    grid.style.opacity = '1';
+    grid.style.transform = 'translateY(0)';
+  }, 120);
+}
+
+function changeDay(dir) {
+  const c = getCardapio();
+  const next = currentDay + dir;
+  if (next < 0 || next >= c.refeicoes.length) return;
+  currentDay = next;
+  renderDay();
+}
+
+function goToDay(i) {
+  currentDay = i;
+  renderDay();
+  document.getElementById('mealsGrid').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderSupps() {
+  const c = getCardapio();
+  const gerais = c.suplementos?.suplementos_gerais || [];
+  const card = document.getElementById('suppsCard');
+  const list = document.getElementById('suppList');
+  if (!gerais.length) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  list.innerHTML = gerais.map(s => `
+    <div class="supp-item">
+      <div class="supp-dot"></div>
+      <span>${s}</span>
+    </div>`).join('');
+}
+
+
+function renderAllContent() {
+  renderPatient();
+  renderCalBars();
+  renderDay();
+  renderSupps();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderPlanSelector();
+  renderAllContent();
+  setTimeout(() => {
+    document.querySelectorAll('.cal-bar').forEach(bar => {
+      bar.style.transition = 'height .8s cubic-bezier(.34,1.56,.64,1)';
+    });
+  }, 100);
+});
+</script>
+</body>
+</html>

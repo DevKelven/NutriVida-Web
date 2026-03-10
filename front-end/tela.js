@@ -33,7 +33,7 @@ document.addEventListener("DOMContentLoaded", function() {
                                 <a class="item ${paginaAtual === 'servico' ? 'paginaAtual' : ''}" id="dropdown__link" href="servico.html" data-translate="7">Nossos serviços</a>
                                 <a class="item ${paginaAtual === 'imc' ? 'paginaAtual' : ''}" id="dropdown__link" href="imc.html" data-translate="8">Imc</a>
                                 <a class="item ${paginaAtual === 'dica' ? 'paginaAtual' : ''}" id="dropdown__link" href="dica.html" data-translate="8">Dicas</a>
-                                <a class="item ${paginaAtual === 'cardapio' ? 'paginaAtual' : ''}" id="dropdown__link" href="Cardapio.html" data-translate="9">Cardápio Personalizado</a>
+                                <a class="item ${paginaAtual === 'cardapio' ? 'paginaAtual' : ''}" id="dropdown__link" href="opcoescardapio.html" data-translate="9">Cardápio Personalizado</a>
                                 <a class="item ${paginaAtual === 'agendamento' ? 'paginaAtual' : ''}" id="dropdown__link" href="agendamento.html" data-translate="9">Agendamento</a>
                             </div>
                         </li>

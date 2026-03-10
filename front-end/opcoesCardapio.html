@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cardápio - NutriVida</title>
+  <link rel="icon" href="img/logos/logo.png" type="image/x-icon">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="tela.js" defer></script>
+  <style>
+    :root {
+      --primary: #10b981;
+      --primary-dark: #059669;
+      --secondary: #34d399;
+      --accent: #fbbf24;
+      --dark: #0f172a;
+      --dark-light: #1e293b;
+      --text: #e2e8f0;
+      --text-dim: #94a3b8;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    
+
+    .bg-blobs {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.12;
+    }
+    .blob-1 { width: 500px; height: 500px; background: var(--primary); top: -120px; left: -100px; animation: drift 12s ease-in-out infinite alternate; }
+    .blob-2 { width: 400px; height: 400px; background: #3b82f6; bottom: -100px; right: -80px; animation: drift 16s ease-in-out infinite alternate-reverse; }
+    .blob-3 { width: 300px; height: 300px; background: var(--accent); top: 40%; left: 50%; animation: drift 10s ease-in-out infinite alternate; }
+    @keyframes drift { from { transform: translate(0, 0) scale(1); } to { transform: translate(30px, 20px) scale(1.05); } }
+
+    header {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 32px;
+    
+    }
+
+    main {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 24px;
+      gap: 0;
+    }
+
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 44px;
+      animation: fadeUp .6s ease both;
+    }
+
+    .hero-icon-wrap {
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #10b981, #059669);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 32px rgba(16, 185, 129, 0.38);
+      animation: pulse 3.2s ease-in-out infinite;
+    }
+    .hero-icon-wrap svg { color: #0D332D; }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 8px 32px rgba(16,185,129,.38); }
+      50% { transform: scale(1.06); box-shadow: 0 12px 40px rgba(16,185,129,.52); }
+    }
+
+    .hero-title {
+      font-size: 32px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.6px;
+      margin-bottom: 8px;
+    }
+    .hero-subtitle {
+      font-size: 14px;
+      color: #bafdbc;
+      opacity: .78;
+      text-align: center;
+    }
+
+    .divider-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      max-width: 480px;
+      margin-bottom: 24px;
+      animation: fadeUp .6s .1s ease both;
+    }
+    .divider-line { flex: 1; height: 1px; background: rgba(255,255,255,0.08); }
+    .divider-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #4b5563;
+      letter-spacing: .9px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .cards-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .option-card {
+      position: relative;
+      border-radius: 20px;
+      border: 1.5px solid rgba(16, 185, 129, 0.28);
+      overflow: hidden;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+      animation: fadeUp .55s ease both;
+    }
+    .option-card:nth-child(1) { animation-delay: .15s; }
+    .option-card:nth-child(2) { animation-delay: .27s; border-color: rgba(59, 130, 246, 0.28); }
+
+    .option-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 16px 40px rgba(0,0,0,.35);
+    }
+    .option-card:nth-child(1):hover { border-color: rgba(16,185,129,.55); box-shadow: 0 16px 40px rgba(16,185,129,.18); }
+    .option-card:nth-child(2):hover { border-color: rgba(59,130,246,.55); box-shadow: 0 16px 40px rgba(59,130,246,.18); }
+
+    .option-card:active { transform: translateY(0) scale(.98); }
+
+    .card-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 22px 20px;
+      background: linear-gradient(135deg, rgba(16,185,129,.07) 0%, rgba(16,185,129,.02) 100%);
+    }
+    .option-card:nth-child(2) .card-inner {
+      background: linear-gradient(135deg, rgba(59,130,246,.07) 0%, rgba(59,130,246,.02) 100%);
+    }
+
+    .card-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex: 1;
+    }
+
+    .card-icon {
+      width: 54px;
+      height: 54px;
+      border-radius: 16px;
+      background: rgba(16, 185, 129, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background .2s;
+    }
+    .option-card:nth-child(2) .card-icon {
+      background: rgba(59, 130, 246, 0.15);
+    }
+    .option-card:hover .card-icon { background: rgba(16,185,129,.25); }
+    .option-card:nth-child(2):hover .card-icon { background: rgba(59,130,246,.25); }
+
+    .card-texts { flex: 1; }
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .card-desc {
+      font-size: 13px;
+      color: #9ca3af;
+      line-height: 1.4;
+    }
+
+    .card-arrow {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: rgba(16, 185, 129, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background .2s, transform .2s;
+    }
+    .option-card:nth-child(2) .card-arrow { background: rgba(59,130,246,.12); }
+    .option-card:hover .card-arrow { transform: translateX(3px); background: rgba(16,185,129,.22); }
+    .option-card:nth-child(2):hover .card-arrow { background: rgba(59,130,246,.22); }
+
+    .badge {
+      position: absolute;
+      top: 12px;
+      right: 64px;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      background: var(--primary);
+      color: #0D332D;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .5px;
+      padding: 3px 9px;
+      border-radius: 20px;
+      pointer-events: none;
+    }
+
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 520px) {
+      header { padding: 14px 18px; }
+      .hero-title { font-size: 26px; }
+      .card-inner { padding: 18px 16px; }
+      .card-icon { width: 46px; height: 46px; border-radius: 12px; }
+      .card-title { font-size: 15px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-blobs">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+
+  <header >
+        <img src="img/logos/Logo texto branco.png" alt="logo-nutrivida">
+
+           
+
+        <section class="direito">
+        <nav class="menu" >
+            <ul id="menu">
+                <li><a class="item" href="index.html"  data-translate="1">Início</a></li>    
+                <li class="dropdown"> <a href="#" class="seta" data-translate="2">Serviços</a>
+                <div class="drop-menu">
+                    <a class="item" href="servico.html" data-translate="7">Nossos serviços</a>
+                    <a class="item" href="imc.html" data-translate="8">Imc</a>
+                    <a class="item" href="opcoescardapio.html" id="paginaAtual" data-translate="9">Cardápio Personalizado</a>
+                    
+                </div>
+            </li>
+                <li><a class="item" href="sobre.html" data-translate="4">Sobre nós</a></li>
+                <li><a class="item" href="contatos.html" data-translate="5">Contatos</a></li>
+                 <div class="login-cadastro">
+                <li><a href="entrar.html" class="login-btn">Login</a></li>
+    
+                </div>
+              
+
+            </ul>
+        </nav>
+    
+        <div class="hamburgue" id="hamburgue"></div>
+    </section>
+    
+           
+    
+    </header>
+
+  <main>
+
+    <div class="hero">
+      <div class="hero-icon-wrap">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#0D332D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/>
+          <path d="M7 2v20"/>
+          <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>
+        </svg>
+      </div>
+      <h1 class="hero-title">Meu Cardápio</h1>
+      <p class="hero-subtitle">Nutrição personalizada para seus objetivos</p>
+    </div>
+
+    <div class="divider-row">
+      <div class="divider-line"></div>
+      <span class="divider-label">O que deseja fazer?</span>
+      <div class="divider-line"></div>
+    </div>
+
+    <div class="cards-wrapper">
+
+      <a href="Cardapio.html" class="option-card">
+        <div class="card-inner">
+          <div class="card-left">
+            <div class="card-icon">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+            </div>
+            <div class="card-texts">
+              <p class="card-title">Criar Novo Cardápio</p>
+              <p class="card-desc">Gere um plano alimentar personalizado agora</p>
+            </div>
+          </div>
+          <div class="card-arrow">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+            </svg>
+          </div>
+        </div>
+        <div class="badge">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0D332D" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+          Novo
+        </div>
+      </a>
+
+      <a href="historicocardapio.html" class="option-card">
+        <div class="card-inner">
+          <div class="card-left">
+            <div class="card-icon">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="1 4 1 10 7 10"/>
+                <path d="M3.51 15a9 9 0 1 0 .49-4.95"/>
+                <polyline points="12 7 12 12 16 14"/>
+              </svg>
+            </div>
+            <div class="card-texts">
+              <p class="card-title">Histórico de Cardápios</p>
+              <p class="card-desc">Veja seus planos alimentares anteriores</p>
+            </div>
+          </div>
+          <div class="card-arrow">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+            </svg>
+          </div>
+        </div>
+      </a>
+
+    </div>
+  </main>
+
+ <footer>
+    <section class="footer-content">
+        <!-- Brand -->
+        <div class="footer-brand">
+            <div class="footer-logo">
+                <span class="footer-logo-icon">
+                    <img src="img/logos/logo.png" alt="logo nutrivida">
+                </span>
+                <span class="footer-logo-text">NutriVida</span>
+            </div>
+            <p class="footer-description">
+                Transformando vidas através da nutrição inteligente. 
+                Planos personalizados e acompanhamento profissional para sua melhor versão.
+            </p>
+            <div class="footer-social">
+                <a href="#" class="social-link" aria-label="Instagram"></a>
+                <a href="#" class="social-link" aria-label="Facebook"></a>
+                <a href="#" class="social-link" aria-label="Twitter"></a>
+                <a href="#" class="social-link" aria-label="YouTube"></a>
+            </div>
+        </div>
+
+        <!-- Mapa do site -->
+        <div class="footer-section">
+            <h3>Mapa do site</h3>
+            <ul class="footer-links">
+                <li><a href="index.html">Início</a></li>
+                <li><a href="servico.html">Serviços</a></li>
+                <li><a href="Cardapio.html">Cardápio</a></li>
+                <li><a href="agendamento.html">Agendamentos</a></li>
+                <li><a href="sobre.html">Sobre nós</a></li>
+                <li><a href="contatos.html">Contatos</a></li>
+            </ul>
+        </div>
+
+        <!-- Planos -->
+        <div class="footer-section">
+            <h3>Planos</h3>
+            <ul class="footer-links">
+                <li><a href="#basico">Básicos</a></li>
+                <li><a href="#intermediario">Intermediários</a></li>
+                <li><a href="#premium">Premium</a></li>
+            </ul>
+        </div>
+
+        <!-- Fale Conosco -->
+        <div class="footer-section">
+            <h3>Fale Conosco</h3>
+            <div class="contact-item">
+                <span class="contact-icon"></span>
+                <span>@site.nutrivida</span>
+            </div>
+            <div class="contact-item">
+                <span class="contact-icon"></span>
+                <span>(11) 99999-9999</span>
+            </div>
+            <div class="contact-item">
+                <span class="contact-icon"></span>
+                <span>São Paulo, SP</span>
+            </div>
+        </div>
+    </section>
+
+    <div class="footer-bottom">
+        <div class="footer-copyright">
+            <span>© 2025 NutriVida</span>
+            <span>•</span>
+            <span>Todos os direitos reservados</span>
+        </div>
+        <ul class="footer-links-bottom">
+            <li><a href="#privacidade">Privacidade</a></li>
+            <li><a href="#termos">Termos de Uso</a></li>
+            <li><a href="#cookies">Cookies</a></li>
+        </ul>
+    </div>
+</footer>
+
+</body>
+</html>

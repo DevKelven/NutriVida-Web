@@ -1255,7 +1255,6 @@
                 <div class="page-actions">
                     <button class="btn btn-outline">◀ Fev</button>
                     <button class="btn btn-ghost">Mar ▶</button>
-                    <button class="btn btn-primary" onclick="toast('Nova consulta agendada!')">+ Agendar</button>
                 </div>
             </div>
 
@@ -2167,6 +2166,66 @@
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
+
+<script>
+async function carregarPacientes() {
+    const container = document.querySelector("#sec-pacientes .glass-card");
+
+    // Substitua pelo ID do nutricionista logado
+    const nutricionistaId = 2; // exemplo, você pode pegar do login real
+
+    try {
+        // Chama a rota específica para o nutricionista
+        const res = await fetch(`http://localhost:3000/api/${nutricionistaId}/pacientes`);
+        if (!res.ok) throw new Error("Erro ao buscar pacientes");
+        const pacientes = await res.json();
+
+        // Limpa os pacientes estáticos existentes
+        const linhasExistentes = container.querySelectorAll(".pac-row");
+        linhasExistentes.forEach(el => el.remove());
+
+        // Cria as linhas para cada paciente
+        pacientes.forEach(p => {
+            const div = document.createElement("div");
+            div.className = "table-row pac-cols pac-row";
+            div.setAttribute("onclick", "openPacDetail()");
+
+            // Calcula IMC
+            const imc = (p.paciente_peso / (p.paciente_altura ** 2)).toFixed(1);
+            let classeImc = "primary";
+            if (imc < 18.5) classeImc = "warn";
+            else if (imc >= 25 && imc < 30) classeImc = "accent";
+            else if (imc >= 30) classeImc = "red";
+
+            div.innerHTML = `
+                <div class="pac-info">
+                    <div class="p-ava av-g">${p.paciente_nome.charAt(0)}</div>
+                    <div>
+                        <div class="p-nm">${p.paciente_nome}</div>
+                        <div class="p-meta">${p.paciente_idade} anos · ${p.paciente_telefone || 'N/A'}</div>
+                    </div>
+                </div>
+                <div class="imc-chip">
+                    <div class="imc-val" style="color:var(--${classeImc})">${imc}</div>
+                    <div class="imc-cl">IMC</div>
+                </div>
+                <div style="text-align:center"><span class="plano pl-prem">Premium</span></div>
+                <div style="text-align:center;font-size:0.78rem;color:var(--text-dim);font-family:'JetBrains Mono',monospace">--/--</div>
+                <div style="text-align:center"><span class="status s-ok">--%</span></div>
+                <div style="text-align:center"><span class="status s-ok">--</span></div>
+            `;
+
+            container.appendChild(div);
+        });
+
+    } catch (err) {
+        console.error("Erro ao carregar pacientes:", err);
+    }
+}
+
+// Chama ao carregar a página
+document.addEventListener("DOMContentLoaded", carregarPacientes);
+</script>
 
 </body>
 </html>

@@ -16,6 +16,7 @@ const criarCardapioRotas = require('./view/criarCardapioRouters');
 const rotasNutricionista = require('./view/nutricionistaRouters');
 const salvarCardapioRouters = require("./view/salvarCardapioRouters");
 const salvarRespostasRouters = require("./view/salvarRespostaRouters");
+const pacientesRouter = require("./view/pacientesRouters");
 
 // Carrega variáveis do .env
 dotenv.config();
@@ -93,7 +94,7 @@ app.get("/auth/google/failure", (req, res) => {
   res.send("Falha no login com o Google.");
 });
 
-
+app.use("/api", pacientesRouter);
 
 
 
