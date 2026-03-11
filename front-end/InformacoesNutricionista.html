@@ -959,8 +959,8 @@
         <div class="nutri-card">
             <div class="nutri-ava">C</div>
             <div>
-                <div class="nutri-name">Dra. Camila Rocha</div>
-                <div class="nutri-crn">CRN-3 · 12345</div>
+                <div class="nutri-name" id="nutriNome">Dra. Camila Rocha</div>
+                <div class="nutri-crn" id="nutriCrn">CRN-3 · 12345</div>
                 <div class="nutri-status">● Online agora</div>
             </div>
         </div>
@@ -1014,8 +1014,8 @@
         <div id="sec-visao" class="section active">
             <div class="page-header">
                 <div>
-                    <div class="page-title">Olá, Dra. Camila</div>
-                    <div class="page-sub">Quinta-feira, 26 de Fevereiro de 2026 &nbsp;·&nbsp; 3 consultas hoje</div>
+                    <div class="page-title" id="tituloNutri">Olá, Dra. Camila</div>
+                    <div class="page-sub" id="dataHoje">Quinta-feira, 26 de Fevereiro de 2026 &nbsp;·&nbsp; 3 consultas hoje</div>
                 </div>
                 <div class="page-actions">
                     <button class="btn btn-ghost" onclick="goSection('alertas')"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span> 5 Alertas</button>
@@ -1029,7 +1029,7 @@
                         <span class="sc-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
                         <span class="sc-badge badge-up">+3 ↑</span>
                     </div>
-                    <div class="sc-num">48</div>
+                    <div class="sc-num" id="totalPacientes">48</div>
                     <div class="sc-label">Pacientes Ativos</div>
                 </div>
                 <div class="stat-card sc-2">
@@ -2171,31 +2171,28 @@
 async function carregarPacientes() {
     const container = document.querySelector("#sec-pacientes .glass-card");
 
-    // Substitua pelo ID do nutricionista logado
-    const nutricionistaId = 2; // exemplo, você pode pegar do login real
+    // pega o nutricionista logado
+    const nutricionistaId = sessionStorage.getItem("nutricionistaId");
+
+if (!nutricionistaId) {
+    console.error("Nutricionista não está logado");
+    return;
+}
 
     try {
-        // Chama a rota específica para o nutricionista
         const res = await fetch(`http://localhost:3000/api/${nutricionistaId}/pacientes`);
         if (!res.ok) throw new Error("Erro ao buscar pacientes");
+
         const pacientes = await res.json();
 
-        // Limpa os pacientes estáticos existentes
         const linhasExistentes = container.querySelectorAll(".pac-row");
         linhasExistentes.forEach(el => el.remove());
 
-        // Cria as linhas para cada paciente
         pacientes.forEach(p => {
             const div = document.createElement("div");
             div.className = "table-row pac-cols pac-row";
-            div.setAttribute("onclick", "openPacDetail()");
 
-            // Calcula IMC
             const imc = (p.paciente_peso / (p.paciente_altura ** 2)).toFixed(1);
-            let classeImc = "primary";
-            if (imc < 18.5) classeImc = "warn";
-            else if (imc >= 25 && imc < 30) classeImc = "accent";
-            else if (imc >= 30) classeImc = "red";
 
             div.innerHTML = `
                 <div class="pac-info">
@@ -2205,14 +2202,11 @@ async function carregarPacientes() {
                         <div class="p-meta">${p.paciente_idade} anos · ${p.paciente_telefone || 'N/A'}</div>
                     </div>
                 </div>
+
                 <div class="imc-chip">
-                    <div class="imc-val" style="color:var(--${classeImc})">${imc}</div>
+                    <div class="imc-val">${imc}</div>
                     <div class="imc-cl">IMC</div>
                 </div>
-                <div style="text-align:center"><span class="plano pl-prem">Premium</span></div>
-                <div style="text-align:center;font-size:0.78rem;color:var(--text-dim);font-family:'JetBrains Mono',monospace">--/--</div>
-                <div style="text-align:center"><span class="status s-ok">--%</span></div>
-                <div style="text-align:center"><span class="status s-ok">--</span></div>
             `;
 
             container.appendChild(div);
@@ -2223,7 +2217,89 @@ async function carregarPacientes() {
     }
 }
 
-// Chama ao carregar a página
+async function carregarDadosNutricionista() {
+
+    const usuario = JSON.parse(localStorage.getItem("dadosUsuario"));
+
+    if (!usuario) {
+        console.error("Usuário não logado");
+        return;
+    }
+
+    const nutricionistaId = usuario.id;
+
+    try {
+
+        const res = await fetch(`http://localhost:3000/nutricionistas/${nutricionistaId}`);
+
+        if (!res.ok) {
+            throw new Error("Erro ao buscar nutricionista");
+        }
+
+        const dados = await res.json();
+
+        document.getElementById("nutriNome").textContent =
+            `Dr. ${dados.nome}`;
+
+        document.getElementById("nutriCrn").textContent =
+            `CRN-3 · ${dados.crn}`;
+
+         document.getElementById("tituloNutri").textContent =
+            `Olá, Dr. ${dados.nome}`;
+
+       
+
+        // data atual
+        const hoje = new Date();
+
+        const dataFormatada = hoje.toLocaleDateString("pt-BR", {
+            weekday: "long",
+            day: "2-digit",
+            month: "long",
+            year: "numeric"
+        });
+
+        // deixa primeira letra maiúscula
+        const dataFinal =
+            dataFormatada.charAt(0).toUpperCase() + dataFormatada.slice(1);
+
+    } catch (erro) {
+        console.error("Erro:", erro);
+    }
+}
+
+async function carregarTotalPacientes() {
+
+    const usuario = JSON.parse(localStorage.getItem("dadosUsuario"));
+
+    if (!usuario) {
+        console.error("Usuário não logado");
+        return;
+    }
+
+    const nutricionistaId = usuario.id;
+
+    try {
+
+        const res = await fetch(`http://localhost:3000/api/${nutricionistaId}/total`);
+
+        if (!res.ok) {
+            throw new Error("Erro ao buscar total de pacientes");
+        }
+
+        const dados = await res.json();
+
+        document.getElementById("totalPacientes").textContent = dados.total;
+
+    } catch (erro) {
+        console.error("Erro ao carregar pacientes:", erro);
+    }
+}
+
+document.addEventListener("DOMContentLoaded", carregarTotalPacientes);
+
+document.addEventListener("DOMContentLoaded", carregarDadosNutricionista);
+
 document.addEventListener("DOMContentLoaded", carregarPacientes);
 </script>
 

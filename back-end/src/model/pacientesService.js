@@ -44,4 +44,15 @@ async function listarPacientesPorNutricionista(nutricionistaId) {
   return rows;
 }
 
-module.exports = { listarPacientes, listarPacientesPorNutricionista };
+async function contarPacientesPorNutricionista(nutricionistaId) {
+  const sql = `
+    SELECT COUNT(*) AS total
+    FROM pacientes
+    WHERE nutricionista_id = ?
+  `;
+
+  const [rows] = await banco.query(sql, [nutricionistaId]);
+  return rows[0];
+}
+
+module.exports = { listarPacientes, listarPacientesPorNutricionista, contarPacientesPorNutricionista };

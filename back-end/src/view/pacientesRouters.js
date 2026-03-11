@@ -24,4 +24,15 @@ router.get("/:nutricionistaId/pacientes", async (req, res) => {
     }
 });
 
+router.get("/:nutricionistaId/total", async (req, res) => {
+  const { nutricionistaId } = req.params;
+
+  try {
+    const total = await pacientesService.contarPacientesPorNutricionista(nutricionistaId);
+    res.json(total);
+  } catch (error) {
+    res.status(500).json({ erro: error.message });
+  }
+});
+
 module.exports = router;
